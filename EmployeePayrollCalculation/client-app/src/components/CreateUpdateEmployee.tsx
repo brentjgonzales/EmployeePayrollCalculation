@@ -3,16 +3,23 @@ import {useForm, useFieldArray} from "react-hook-form";
 import {yupResolver} from '@hookform/resolvers/yup';
 import * as Yup from 'yup';
 import {v4 as uuidv4} from 'uuid';
+import axios from "axios";
+import {Shape} from "../utils";
 
-// interface LocalState {
-//     name: string,
-//     dependents: Dependent[]
-// }
-//
-// interface Dependent {
-//     id: string,
-//     name: string
-// }
+interface Employee {
+    employeeName: string,
+    dependents: Dependent[]
+}
+
+interface Dependent {
+    id: string,
+    dependentName: string
+}
+
+interface ServerEmployee {
+    employeeName: string,
+    dependentNames: string[]
+}
 
 interface Calculation {
     employeeBenefit: Benefit,
@@ -27,13 +34,15 @@ interface Benefit {
 
 const CreateEmployee = () => {
     // form validation rules 
-    const validationSchema = Yup.object().shape({
+    const validationSchema = Yup.object<Shape<Employee>>().shape({
         employeeName: Yup.string()
-            .required('Employee Name is required.'),
+            .required('Employee Name is required.')
+            .max(50, "Employee Name must be 50 characters or less."),
         dependents: Yup.array().of(
             Yup.object().shape({
                 dependentName: Yup.string()
                     .required('Dependent Name is required.')
+                    .max(50, "Dependent Name must be 50 characters or less.")
             })
         )
     });
@@ -70,26 +79,6 @@ const CreateEmployee = () => {
             total: getTotalString()
         });
     }, []);
-
-    // watch to enable re-render when ticket number is changed
-    // const employeeName = watch('employeeName');
-
-    // useEffect(() => {
-    //     // update field array when ticket number changed
-    //     const newVal = parseInt(numberOfTickets || 0);
-    //     const oldVal = fields.length;
-    //     if (newVal > oldVal) {
-    //         // append tickets to field array
-    //         for (let i = oldVal; i < newVal; i++) {
-    //             append({ name: '', email: '' });
-    //         }
-    //     } else {
-    //         // remove tickets from field array
-    //         for (let i = oldVal; i > newVal; i--) {
-    //             remove(i - 1);
-    //         }
-    //     }
-    // }, [numberOfTickets]);
 
     const salaryPerPaycheck = 2000.00;
     const numberOfPaychecksPerYear = 26;
@@ -129,9 +118,25 @@ const CreateEmployee = () => {
         })
     }
 
-    function onSubmit(data: any) {
-        // display form data on success
-        alert('SUCCESS!! :-)\n\n' + JSON.stringify(data, null, 4));
+    const onSubmit = (employee: Employee) => {
+        const serverEmployee: ServerEmployee = {
+            employeeName: employee.employeeName,
+            dependentNames: employee.dependents.map((dependent) => dependent.dependentName)
+        };
+        
+        axios
+            .post("/api/employee", serverEmployee, {
+                headers: {
+                    Accept: "application/json",
+                    "Content-Type": "application/json;charset=UTF-8",
+                },
+            })
+            .then((data: any) => {
+                console.log(data);
+            })
+            .catch((data: any) => {
+                console.log(data);
+            });
     }
 
     // https://stackoverflow.com/a/2901298/5573838
@@ -216,12 +221,13 @@ const CreateEmployee = () => {
             dependentBenefits: [...calculation.dependentBenefits],
             total: getTotalString()
         })
-    }
+    };
 
     return (
         <div className="container">
-            <form onSubmit={handleSubmit(onSubmit)}>
-                <h2 className='mb-4'>Create Employee</h2>
+            <h2 className='mb-4'>Create Employee</h2>
+            
+            <form onSubmit={handleSubmit((data) => onSubmit(data as Employee))}>
                 <div className="row">
                     <div className="col-xl-6">
                         <div className="card mb-4">
@@ -305,6 +311,7 @@ const CreateEmployee = () => {
                         </div>
                     </div>
                 </div>
+                <button type="submit" className="btn btn-success">Create Employee</button>
             </form>
         </div>
     )
