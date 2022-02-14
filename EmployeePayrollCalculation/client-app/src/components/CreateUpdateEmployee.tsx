@@ -5,6 +5,7 @@ import * as Yup from 'yup';
 import {v4 as uuidv4} from 'uuid';
 import axios from "axios";
 import {Shape} from "../utils";
+import {useParams} from "react-router";
 
 interface Employee {
     employeeName: string,
@@ -33,6 +34,8 @@ interface Benefit {
 }
 
 const CreateEmployee = () => {
+    const { employeeIdParam } = useParams<{employeeIdParam?: string | undefined}>();
+    
     // form validation rules 
     const validationSchema = Yup.object<Shape<Employee>>().shape({
         employeeName: Yup.string()
@@ -49,7 +52,7 @@ const CreateEmployee = () => {
     const formOptions = {resolver: yupResolver(validationSchema)};
 
     // functions to build form returned by useForm() and useFieldArray() hooks
-    const {register, control, handleSubmit, reset, formState, watch, getValues} = useForm({
+    const {register, control, handleSubmit, reset, formState, watch, getValues, setValue} = useForm({
         ...formOptions,
         mode: "onBlur"
     });
@@ -68,6 +71,7 @@ const CreateEmployee = () => {
         dependentBenefits: [],
         total: ""
     });
+    const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         setCalculation({
@@ -78,6 +82,35 @@ const CreateEmployee = () => {
             dependentBenefits: [],
             total: getTotalString()
         });
+        
+        if (employeeIdParam) {
+            setIsLoading(true);
+            axios
+                .get<ServerEmployee>("/api/employee/" + employeeIdParam, {
+                    headers: {
+                        Accept: "application/json",
+                        "Content-Type": "application/json;charset=UTF-8",
+                    },
+                })
+                .then(response => {
+                    setValue("employeeName", response.data.employeeName);
+                    if (response.data.dependentNames) {
+                        setValue("dependents", response.data.dependentNames.map((dependentName) => ({id: uuidv4(), dependentName: dependentName})));
+                    }
+                    setIsLoading(false);
+                    
+                    // TODO - refactor calculation and use watch instead?
+                    // setCalculation({
+                    //     ...calculation,
+                    //     dependentBenefits: [...calculation.dependentBenefits],
+                    //     total: getTotalString()
+                    // });
+                })
+                .catch((data: any) => {
+                    alert("An error occured when retrieving the list of employees to manage.");
+                    console.error(data);
+                });
+        }
     }, []);
 
     const salaryPerPaycheck = 2000.00;
@@ -115,7 +148,7 @@ const CreateEmployee = () => {
             ...calculation,
             dependentBenefits: [...calculation.dependentBenefits],
             total: getTotalString()
-        })
+        });
     }
 
     const onSubmit = (employee: Employee) => {
@@ -225,7 +258,7 @@ const CreateEmployee = () => {
 
     return (
         <div className="container">
-            <h2 className='mb-4'>Create Employee</h2>
+            <h2 className='mb-4'>{employeeIdParam ? "Update" : "Create"} Employee</h2>
             
             <form onSubmit={handleSubmit((data) => onSubmit(data as Employee))}>
                 <div className="row">

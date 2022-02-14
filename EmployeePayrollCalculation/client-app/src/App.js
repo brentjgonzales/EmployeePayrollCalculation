@@ -10,7 +10,8 @@ export default class App extends Component {
         return (
             <Layout>
                 <Route exact path="/" component={Home}/>
-                <Route path="/create-update-employee" component={CreateUpdateEmployee}/>
+                <Route exact path="/create-update-employee" component={CreateUpdateEmployee}/>
+                <Route path="/create-update-employee/:employeeIdParam" component={CreateUpdateEmployee}/>
                 <Route path="/manage-employees" component={ManageEmployees}/>
             </Layout>
         );

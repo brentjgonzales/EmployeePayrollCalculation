@@ -24,6 +24,20 @@ public class EmployeeService : IEmployeeService
             });
     }
 
+    public Models.Employee GetEmployee(int employeeId)
+    {
+        return _context.Employees
+            .Where(x => x.EmployeeId == employeeId)
+            .Select(x => new Models.Employee()
+            {
+                EmployeeName = x.EmployeeName,
+                DependentNames = x.Dependents
+                    .OrderBy(y => y.SortOrder)
+                    .Select(y => y.DependentName)
+            })
+            .Single();
+    }
+
     public void CreateEmployee(Models.Employee employee)
     {
         if (employee == null) throw new ArgumentNullException(nameof(employee));
@@ -37,18 +51,22 @@ public class EmployeeService : IEmployeeService
         _context.Employees.Add(efEmployee);
         _context.SaveChanges();
 
-        for (var i = 0; i < employee.DependentNames!.Count; i++)
+        if (employee.DependentNames != null)
         {
-            var efDependent = new EFModels.Dependent()
+            var dependentNames = employee.DependentNames.ToList();
+            for (var i = 0; i < dependentNames.Count; i++)
             {
-                FkEmployeeId = efEmployee.EmployeeId,
-                SortOrder = i,
-                DependentName = employee.DependentNames![0]!
-            };
-            _context.Dependents.Add(efDependent);
-            _context.SaveChanges();
+                var efDependent = new EFModels.Dependent()
+                {
+                    FkEmployeeId = efEmployee.EmployeeId,
+                    SortOrder = i,
+                    DependentName = dependentNames[0]
+                };
+                _context.Dependents.Add(efDependent);
+                _context.SaveChanges();
+            }
         }
-            
+
         transaction.Commit();
     }
 }

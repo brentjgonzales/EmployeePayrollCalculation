@@ -22,6 +22,14 @@ public class EmployeeController : ControllerBase
         return Ok(_employeeService.GetEmployeesToManage());
     }
     
+    [HttpGet("{employeeId:int}")]
+    public IActionResult GetEmployee(int employeeId)
+    {
+        return Ok(_employeeService.GetEmployee(employeeId));
+    }
+    
+    [HttpPost]
+    [HttpGet("")]
     public IActionResult CreateEmployee([FromBody] Employee employee)
     {
         if (employee == null) throw new ArgumentNullException(nameof(employee));

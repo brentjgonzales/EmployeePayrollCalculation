@@ -9,5 +9,5 @@ public class Employee
     public string? EmployeeName { get; set; }
     
     [StringInListRequired]
-    public List<string>? DependentNames { get; set; }
+    public IEnumerable<string>? DependentNames { get; set; }
 }
