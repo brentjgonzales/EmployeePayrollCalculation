@@ -29,12 +29,19 @@ public class EmployeeController : ControllerBase
     }
     
     [HttpPost]
-    [HttpGet("")]
     public IActionResult CreateEmployee([FromBody] Employee employee)
     {
         if (employee == null) throw new ArgumentNullException(nameof(employee));
 
         _employeeService.CreateEmployee(employee);
+
+        return Ok();
+    }
+    
+    [HttpDelete("{employeeId:int}")]
+    public IActionResult DeleteEmployee(int employeeId)
+    {
+        _employeeService.DeleteEmployee(employeeId);
 
         return Ok();
     }

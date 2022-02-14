@@ -60,7 +60,7 @@ public class EmployeeService : IEmployeeService
                 {
                     FkEmployeeId = efEmployee.EmployeeId,
                     SortOrder = i,
-                    DependentName = dependentNames[0]
+                    DependentName = dependentNames[i]
                 };
                 _context.Dependents.Add(efDependent);
                 _context.SaveChanges();
@@ -68,5 +68,12 @@ public class EmployeeService : IEmployeeService
         }
 
         transaction.Commit();
+    }
+
+    public void DeleteEmployee(int employeeId)
+    {
+        _context.Dependents.RemoveRange(_context.Dependents.Where(x => x.FkEmployeeId == employeeId));
+        _context.Employees.RemoveRange(_context.Employees.Where(x => x.EmployeeId == employeeId));
+        _context.SaveChanges();
     }
 }

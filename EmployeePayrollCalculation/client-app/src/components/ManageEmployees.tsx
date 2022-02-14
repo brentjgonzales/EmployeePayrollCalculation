@@ -7,6 +7,8 @@ import axios from "axios";
 import {
     Link
 } from "react-router-dom";
+import ToastMaker from "toastmaker";
+import {useHistory} from "react-router";
 
 interface Employee {
     employeeId: number,
@@ -35,6 +37,24 @@ const ManageEmployees = () => {
                 console.error(data);
             });
     }, []);
+    
+    const deleteEmployee = (employeeId: number) => {
+        axios
+            .delete("/api/employee/" + employeeId, {
+                headers: {
+                    Accept: "application/json",
+                    "Content-Type": "application/json;charset=UTF-8",
+                },
+            })
+            .then(() => {
+                ToastMaker("Successfully deleted employee.");
+                setEmployees(employees.filter(employee => employee.employeeId !== employeeId));
+            })
+            .catch((data: any) => {
+                ToastMaker("An error occurred when deleting the employee.");
+                console.log(data);
+            });
+    };
 
     return (
         <div className="container">
@@ -53,7 +73,7 @@ const ManageEmployees = () => {
                                         <Link to={"/create-update-employee/" + employee.employeeId}>{employee.employeeName}</Link>
                                     </div>
                                     <div>
-                                        <Link className="btn btn-outline-danger" to={"/create-update-employee/" + employee.employeeId}>Delete</Link>
+                                        <button type="button" className="btn btn-outline-danger" onClick={() => {deleteEmployee(employee.employeeId)}}>Delete</button>
                                     </div>
                                 </div>
                             </div>

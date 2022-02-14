@@ -153,7 +153,7 @@ const CreateEmployee = () => {
                 console.log(data);
             })
             .catch((data: any) => {
-                ToastMaker("An error when creating the employee.");
+                ToastMaker("An error occurred when creating the employee.");
                 console.log(data);
             });
     }
