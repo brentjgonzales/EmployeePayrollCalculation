@@ -29,7 +29,7 @@ interface Calculation {
 }
 
 interface Benefit {
-    cost: string,
+    costString: string,
     discountActive: boolean
 }
 
@@ -63,25 +63,15 @@ const CreateEmployee = () => {
         fields: dependents
     } = useFieldArray({name: 'dependents', control});
 
-    const [calculation, setCalculation] = useState<Calculation>({
-        employeeBenefit: {
-            cost: "",
-            discountActive: false
-        },
-        dependentBenefits: [],
-        total: ""
-    });
+    const [employeeBenefitCostString, setEmployeeBenefitCostString] = useState("");
+    const [employeeBenefitDiscountActive, setEmployeeBenefitDiscountActive] = useState(false);
+    const [dependentBenefits, setDependentBenefits] = useState<Benefit[]>([]);
+    const [calcTotalString, setCalcTotalString] = useState("");
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
-        setCalculation({
-            employeeBenefit: {
-                cost: getEmployeeBenefitCostString(),
-                discountActive: false
-            },
-            dependentBenefits: [],
-            total: getTotalString()
-        });
+        setEmployeeBenefitCostString(getEmployeeBenefitCostString());
+        setCalcTotalString(getTotalString());
         
         if (employeeIdParam) {
             setIsLoading(true);
@@ -96,18 +86,15 @@ const CreateEmployee = () => {
                     setValue("employeeName", response.data.employeeName);
                     if (response.data.dependentNames) {
                         setValue("dependents", response.data.dependentNames.map((dependentName) => ({id: uuidv4(), dependentName: dependentName})));
+                        setDependentBenefits(response.data.dependentNames.map((dependentName, index) => ({costString: getDependentBenefitCostString(index), discountActive: getValues(`dependents.${index}.dependentName`)})));
                     }
+                    setEmployeeBenefitCostString(getEmployeeBenefitCostString());
+                    setEmployeeBenefitDiscountActive(isDiscountApplied(getValues("employeeName")));
+                    setCalcTotalString(getTotalString());
                     setIsLoading(false);
-                    
-                    // TODO - refactor calculation and use watch instead?
-                    // setCalculation({
-                    //     ...calculation,
-                    //     dependentBenefits: [...calculation.dependentBenefits],
-                    //     total: getTotalString()
-                    // });
                 })
                 .catch((data: any) => {
-                    alert("An error occured when retrieving the list of employees to manage.");
+                    alert("An error occured when retrieving the data for the employee.");
                     console.error(data);
                 });
         }
@@ -127,31 +114,25 @@ const CreateEmployee = () => {
             id: uuidv4(),
             dependentName: ''
         });
-        const newIndex = calculation.dependentBenefits.length;
-        setCalculation({
-            ...calculation,
-            dependentBenefits: [
-                ...calculation.dependentBenefits,
-                {
-                    cost: getDependentBenefitCostString(newIndex),
-                    discountActive: false
-                }
-            ],
-            total: getTotalString()
-        })
+        const newIndex = dependentBenefits.length;
+        setDependentBenefits([
+            ...dependentBenefits,
+            {
+                costString: getDependentBenefitCostString(newIndex),
+                discountActive: false
+            }
+        ]);
+        setCalcTotalString(getTotalString());
     };
 
     const removeDependent = (index: number) => {
         removeDependentFieldArray(index);
-        calculation.dependentBenefits.splice(index, 1);
-        setCalculation({
-            ...calculation,
-            dependentBenefits: [...calculation.dependentBenefits],
-            total: getTotalString()
-        });
+        dependentBenefits.splice(index, 1);
+        setDependentBenefits([...dependentBenefits]);
+        setCalcTotalString(getTotalString());
     }
 
-    const onSubmit = (employee: Employee) => {
+    const createEmployee = (employee: Employee) => {
         const serverEmployee: ServerEmployee = {
             employeeName: employee.employeeName,
             dependentNames: employee.dependents.map((dependent) => dependent.dependentName)
@@ -235,117 +216,114 @@ const CreateEmployee = () => {
     };
 
     const employeeNameChange = () => {
-        setCalculation({
-            ...calculation,
-            employeeBenefit: {
-                cost: getEmployeeBenefitCostString(),
-                discountActive: isDiscountApplied(getValues("employeeName"))
-            },
-            total: getTotalString()
-        })
+        setEmployeeBenefitCostString(getEmployeeBenefitCostString());
+        setEmployeeBenefitDiscountActive(isDiscountApplied(getValues("employeeName")));
+        setCalcTotalString(getTotalString());
     };
 
     const dependentNameChange = (index: number) => {
-        const dependentBenefit = calculation.dependentBenefits[index];
-        dependentBenefit.cost = getDependentBenefitCostString(index);
+        const dependentBenefit = dependentBenefits[index];
+        dependentBenefit.costString = getDependentBenefitCostString(index);
         dependentBenefit.discountActive = isDiscountApplied(getValues(`dependents.${index}.dependentName`));
-        setCalculation({
-            ...calculation,
-            dependentBenefits: [...calculation.dependentBenefits],
-            total: getTotalString()
-        })
+        setDependentBenefits([...dependentBenefits]);
+        setCalcTotalString(getTotalString());
     };
 
     return (
         <div className="container">
             <h2 className='mb-4'>{employeeIdParam ? "Update" : "Create"} Employee</h2>
-            
-            <form onSubmit={handleSubmit((data) => onSubmit(data as Employee))}>
-                <div className="row">
-                    <div className="col-xl-6">
-                        <div className="card mb-4">
-                            <h5 className="card-header">Employee & Dependents</h5>
-                            <div className="card-body">
-                                <div className="mb-3">
-                                    <label htmlFor='employeeName'>Employee Name</label>
-                                    <input {...register('employeeName', {
-                                        onChange: (e) => {
-                                            employeeNameChange()
-                                        }
-                                    })}
-                                           className={`form-control ${errors.employeeName ? 'is-invalid' : ''}`}/>
-                                    <div className="text-danger small">{errors.employeeName?.message}</div>
-                                </div>
-                                {dependents.map((item, i) => (
-                                    <div key={item.id} className="mb-3">
-                                        <label htmlFor={`dependents.${i}.dependentName`}>Dependent Name #{i + 1}</label>
-                                        <div className="input-group">
-                                            <input {...register(`dependents.${i}.dependentName`, {onChange: (e) => dependentNameChange(i)})}
-                                                   className={`form-control ${errors.dependents?.[i]?.dependentName ? 'is-invalid' : ''}`}/>
-                                            <button type="button" className="btn btn-outline-danger"
-                                                    onClick={() => removeDependent(i)}>Remove
-                                            </button>
-                                        </div>
-                                        <div
-                                            className="text-danger small">{errors.dependents?.[i]?.dependentName?.message}</div>
+
+            {isLoading ? <em>Loading...</em> :
+
+                <form onSubmit={handleSubmit((data) => createEmployee(data as Employee))}>
+                    <div className="row">
+                        <div className="col-xl-6">
+                            <div className="card mb-4">
+                                <h5 className="card-header">Employee & Dependents</h5>
+                                <div className="card-body">
+                                    <div className="mb-3">
+                                        <label htmlFor='employeeName'>Employee Name</label>
+                                        <input {...register('employeeName', {
+                                            onChange: (e) => {
+                                                employeeNameChange()
+                                            }
+                                        })}
+                                               className={`form-control ${errors.employeeName ? 'is-invalid' : ''}`}/>
+                                        <div className="text-danger small">{errors.employeeName?.message}</div>
                                     </div>
-                                ))}
-                                <div>
-                                    <button type="button" className="btn btn-link" onClick={addDependent}>+ Add
-                                        Dependent
-                                    </button>
+                                    {dependents.map((item, i) => (
+                                        <div key={item.id} className="mb-3">
+                                            <label htmlFor={`dependents.${i}.dependentName`}>Dependent Name #{i + 1}</label>
+                                            <div className="input-group">
+                                                <input {...register(`dependents.${i}.dependentName`, {onChange: (e) => dependentNameChange(i)})}
+                                                       className={`form-control ${errors.dependents?.[i]?.dependentName ? 'is-invalid' : ''}`}/>
+                                                <button type="button" className="btn btn-outline-danger"
+                                                        onClick={() => removeDependent(i)}>Remove
+                                                </button>
+                                            </div>
+                                            <div
+                                                className="text-danger small">{errors.dependents?.[i]?.dependentName?.message}</div>
+                                        </div>
+                                    ))}
+                                    <div>
+                                        <button type="button" className="btn btn-link" onClick={addDependent}>+ Add
+                                            Dependent
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    <div className="col-xl-6">
-                        <div className="card mb-4">
-                            <h5 className="card-header">Calculation</h5>
-                            <div className="card-body">
-                                <p>Employee salary is <strong>${salaryPerPaycheck.toFixed(2)}</strong> per paycheck
-                                    for <strong>26</strong> paychecks per year.</p>
-                                <p>Employee benefits cost <strong>${employeeBenefitCost}</strong>/year.</p>
-                                <p>Dependent benefits cost <strong>$500.00</strong>/year per dependent.</p>
-                                <p>Employee and dependent benefits receive a <strong>10%</strong> discount if their name
-                                    starts with 'A'.</p>
-                                <table className="table">
-                                    <tbody>
-                                    <tr>
-                                        <td>Employee Salary</td>
-                                        <td className="green">{employeeSalaryString}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <div>Employee Benefits</div>
-                                            {calculation.employeeBenefit.discountActive &&
-                                                <div className="green small">Discount applied.</div>}
-                                        </td>
-                                        <td className="darkred">{calculation.employeeBenefit.cost}</td>
-                                    </tr>
-                                    {dependents.map((item, i) => (
-                                        <tr key={item.id}>
+                        <div className="col-xl-6">
+                            <div className="card mb-4">
+                                <h5 className="card-header">Calculation</h5>
+                                <div className="card-body">
+                                    <p>Employee salary is <strong>${salaryPerPaycheck.toFixed(2)}</strong> per paycheck
+                                        for <strong>26</strong> paychecks per year.</p>
+                                    <p>Employee benefits cost <strong>${employeeBenefitCost}</strong>/year.</p>
+                                    <p>Dependent benefits cost <strong>$500.00</strong>/year per dependent.</p>
+                                    <p>Employee and dependent benefits receive a <strong>10%</strong> discount if their name
+                                        starts with 'A'.</p>
+                                    <table className="table">
+                                        <tbody>
+                                        <tr>
+                                            <td>Employee Salary</td>
+                                            <td className="green">{employeeSalaryString}</td>
+                                        </tr>
+                                        <tr>
                                             <td>
-                                                <div>
-                                                    Dependent #{i + 1} Benefits
-                                                </div>
-                                                {calculation.dependentBenefits[i].discountActive &&
+                                                <div>Employee Benefits</div>
+                                                {employeeBenefitDiscountActive &&
                                                     <div className="green small">Discount applied.</div>}
                                             </td>
-                                            <td className="darkred">{calculation.dependentBenefits[i].cost}</td>
+                                            <td className="darkred">{employeeBenefitCostString}</td>
                                         </tr>
-                                    ))}
-                                    <tr>
-                                        <th>Total</th>
-                                        <th>{calculation.total}</th>
-                                    </tr>
-                                    </tbody>
-                                </table>
+                                        {dependentBenefits.map((item, i) => (
+                                            <tr key={dependents[i].id}>
+                                                <td>
+                                                    <div>
+                                                        Dependent #{i + 1} Benefits
+                                                    </div>
+                                                    {item.discountActive &&
+                                                        <div className="green small">Discount applied.</div>}
+                                                </td>
+                                                <td className="darkred">{item.costString}</td>
+                                            </tr>
+                                        ))}
+                                        <tr>
+                                            <th>Total</th>
+                                            <th>{calcTotalString}</th>
+                                        </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                <button type="submit" className="btn btn-success">Create Employee</button>
-            </form>
+                    <button type="submit" className="btn btn-success">Create Employee</button>
+                </form>
+
+            }
+            
         </div>
     )
 }
