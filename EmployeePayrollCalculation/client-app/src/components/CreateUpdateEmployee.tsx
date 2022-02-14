@@ -88,7 +88,7 @@ const CreateEmployee = () => {
                     setValue("employeeName", response.data.employeeName);
                     if (response.data.dependentNames) {
                         setValue("dependents", response.data.dependentNames.map((dependentName) => ({id: uuidv4(), dependentName: dependentName})));
-                        setDependentBenefits(response.data.dependentNames.map((dependentName, index) => ({costString: getDependentBenefitCostString(index), discountActive: getValues(`dependents.${index}.dependentName`)})));
+                        setDependentBenefits(response.data.dependentNames.map((dependentName, index) => ({costString: getDependentBenefitCostString(index), discountActive: isDiscountApplied(getValues(`dependents.${index}.dependentName`))})));
                     }
                     setEmployeeBenefitCostString(getEmployeeBenefitCostString());
                     setEmployeeBenefitDiscountActive(isDiscountApplied(getValues("employeeName")));
