@@ -5,7 +5,8 @@ import * as Yup from 'yup';
 import {v4 as uuidv4} from 'uuid';
 import axios from "axios";
 import {Shape} from "../utils";
-import {useParams} from "react-router";
+import {useHistory, useParams} from "react-router";
+import ToastMaker from 'toastmaker';
 
 interface Employee {
     employeeName: string,
@@ -34,6 +35,7 @@ interface Benefit {
 }
 
 const CreateEmployee = () => {
+    const history = useHistory();
     const { employeeIdParam } = useParams<{employeeIdParam?: string | undefined}>();
     
     // form validation rules 
@@ -94,7 +96,7 @@ const CreateEmployee = () => {
                     setIsLoading(false);
                 })
                 .catch((data: any) => {
-                    alert("An error occured when retrieving the data for the employee.");
+                    ToastMaker("An error occured when retrieving the data for the employee.");
                     console.error(data);
                 });
         }
@@ -146,9 +148,12 @@ const CreateEmployee = () => {
                 },
             })
             .then((data: any) => {
+                ToastMaker("Successfully created employee.");
+                history.push("/manage-employees");
                 console.log(data);
             })
             .catch((data: any) => {
+                ToastMaker("An error when creating the employee.");
                 console.log(data);
             });
     }
