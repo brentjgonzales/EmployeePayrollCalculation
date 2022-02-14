@@ -51,6 +51,15 @@ public class EmployeeService : IEmployeeService
         _context.Employees.Add(efEmployee);
         _context.SaveChanges();
 
+        AddDependentsToDatabase(employee, efEmployee.EmployeeId);
+
+        _context.SaveChanges();
+
+        transaction.Commit();
+    }
+
+    private void AddDependentsToDatabase(Models.Employee employee, int employeeId)
+    {
         if (employee.DependentNames != null)
         {
             var dependentNames = employee.DependentNames.ToList();
@@ -58,16 +67,27 @@ public class EmployeeService : IEmployeeService
             {
                 var efDependent = new EFModels.Dependent()
                 {
-                    FkEmployeeId = efEmployee.EmployeeId,
+                    FkEmployeeId = employeeId,
                     SortOrder = i,
                     DependentName = dependentNames[i]
                 };
                 _context.Dependents.Add(efDependent);
-                _context.SaveChanges();
             }
         }
+    }
 
-        transaction.Commit();
+    public void UpdateEmployee(Models.Employee employee, int employeeId)
+    {
+        // Remove all existing dependents
+        _context.Dependents.RemoveRange(_context.Dependents.Where(x => x.FkEmployeeId == employeeId));
+
+        // Fetch the existing employee and change its name
+        var efEmployee = _context.Employees.Single(x => x.EmployeeId == employeeId);
+        efEmployee.EmployeeName = employee.EmployeeName!;
+        
+        AddDependentsToDatabase(employee, efEmployee.EmployeeId);
+        
+        _context.SaveChanges();
     }
 
     public void DeleteEmployee(int employeeId)

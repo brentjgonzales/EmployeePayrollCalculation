@@ -38,6 +38,16 @@ public class EmployeeController : ControllerBase
         return Ok();
     }
     
+    [HttpPut("{employeeId:int}")]
+    public IActionResult UpdateEmployee([FromBody] Employee employee, int employeeId)
+    {
+        if (employee == null) throw new ArgumentNullException(nameof(employee));
+
+        _employeeService.UpdateEmployee(employee, employeeId);
+
+        return Ok();
+    }
+    
     [HttpDelete("{employeeId:int}")]
     public IActionResult DeleteEmployee(int employeeId)
     {

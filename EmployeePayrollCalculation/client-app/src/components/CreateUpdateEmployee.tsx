@@ -140,22 +140,43 @@ const CreateEmployee = () => {
             dependentNames: employee.dependents.map((dependent) => dependent.dependentName)
         };
         
-        axios
-            .post("/api/employee", serverEmployee, {
-                headers: {
-                    Accept: "application/json",
-                    "Content-Type": "application/json;charset=UTF-8",
-                },
-            })
-            .then((data: any) => {
-                ToastMaker("Successfully created employee.");
-                history.push("/manage-employees");
-                console.log(data);
-            })
-            .catch((data: any) => {
-                ToastMaker("An error occurred when creating the employee.");
-                console.log(data);
-            });
+        if (employeeIdParam) {
+            axios
+                .put("/api/employee/" + employeeIdParam, serverEmployee, {
+                    headers: {
+                        Accept: "application/json",
+                        "Content-Type": "application/json;charset=UTF-8",
+                    },
+                })
+                .then((data: any) => {
+                    ToastMaker("Successfully updated employee.");
+                    history.push("/manage-employees");
+                    console.log(data);
+                })
+                .catch((data: any) => {
+                    ToastMaker("An error occurred when updating the employee.");
+                    console.log(data);
+                });
+        }
+        else {
+            axios
+                .post("/api/employee", serverEmployee, {
+                    headers: {
+                        Accept: "application/json",
+                        "Content-Type": "application/json;charset=UTF-8",
+                    },
+                })
+                .then((data: any) => {
+                    ToastMaker("Successfully created employee.");
+                    history.push("/manage-employees");
+                    console.log(data);
+                })
+                .catch((data: any) => {
+                    ToastMaker("An error occurred when creating the employee.");
+                    console.log(data);
+                });
+        }
+       
     }
 
     // https://stackoverflow.com/a/2901298/5573838
@@ -324,7 +345,7 @@ const CreateEmployee = () => {
                             </div>
                         </div>
                     </div>
-                    <button type="submit" className="btn btn-success">Create Employee</button>
+                    <button type="submit" className="btn btn-success">{employeeIdParam ? "Update" : "Create"} Employee</button>
                 </form>
 
             }

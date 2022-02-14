@@ -10,5 +10,7 @@ public interface IEmployeeService
     
     void CreateEmployee(Employee employee);
 
+    void UpdateEmployee(Models.Employee employee, int employeeId);
+
     void DeleteEmployee(int employeeId);
 }
