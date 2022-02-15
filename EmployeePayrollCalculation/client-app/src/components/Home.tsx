@@ -13,7 +13,7 @@ const Home = () => {
                     <Link to="/manage-employees">Manage Employees</Link>
                 </li>
                 <li>
-                    <Link to="/create-employee">Create Employee</Link>
+                    <Link to="/create-update-employee">Create Employee</Link>
                 </li>
             </ul>
         </div>

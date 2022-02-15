@@ -10,6 +10,8 @@ const config = {
     },
 };
 
+// Mounted Ref - https://stackoverflow.com/a/60693711/5573838
+
 function get<T>(url: string,
                 success: ((x: T) => any) | null,
                 errorMessage: string,

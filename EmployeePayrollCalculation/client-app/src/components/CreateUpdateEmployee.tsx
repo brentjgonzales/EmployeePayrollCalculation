@@ -8,6 +8,8 @@ import {useHistory, useParams} from "react-router";
 import ToastMaker from 'toastmaker';
 import AxiosService from "../services/AxiosService";
 import YupService, {YupValidation} from "../services/YupService";
+import CommonService from "../services/CommonService";
+import CreateUpdateEmployeeService from "../services/CreateUpdateEmployeeService";
 
 interface Employee {
     employeeName: string,
@@ -30,7 +32,6 @@ interface Benefit {
 }
 
 const CreateEmployee = () => {
-    // https://stackoverflow.com/a/60693711/5573838
     const mountedRef = useRef(true);
     
     const history = useHistory();
@@ -118,15 +119,15 @@ const CreateEmployee = () => {
     useEffect(() => {
         
         setEmployeeBenefitCostString(getEmployeeBenefitCostString());
-        setEmployeeBenefitDiscountActive(isDiscountApplied(getValues("employeeName")));
+        setEmployeeBenefitDiscountActive(CreateUpdateEmployeeService.isDiscountApplied(getValues("employeeName")));
         setDependentBenefits(dependents.map((dependent, index) =>
-            ({costString: getDependentBenefitCostString(index), discountActive: isDiscountApplied(getValues(`dependents.${index}.dependentName`))})));
+            ({costString: getDependentBenefitCostString(index), discountActive: CreateUpdateEmployeeService.isDiscountApplied(getValues(`dependents.${index}.dependentName`))})));
         setCalcTotalString(getTotalString());
         
     }, [isLoading]);
 
     const employeeSalary = salaryPerPaycheck * numberOfPaychecksPerYear;
-    const employeeSalaryString = `$${numberWithCommas(employeeSalary.toFixed(2))}`;
+    const employeeSalaryString = `$${CommonService.toMoney(employeeSalary)}`;
 
     const addDependent = () => {
         appendDependentFieldArray({
@@ -172,54 +173,41 @@ const CreateEmployee = () => {
                 }, "An error occurred when creating the employee.", mountedRef);
         }
     }
-
-    // https://stackoverflow.com/a/2901298/5573838
-    function numberWithCommas(x: any) {
-        return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    }
-
-    const isDiscountApplied = (name: string) => {
-        return name?.length > 0 && name[0].toUpperCase() === "A";
-    };
-
+    
     const isEmployeeBenefitDiscountApplied = () => {
         const employeeName = getValues("employeeName");
-        return isDiscountApplied(employeeName);
+        return CreateUpdateEmployeeService.isDiscountApplied(employeeName);
     };
 
     const isDependentBenefitDiscountApplied = (index: number) => {
         const employeeName = getValues(`dependents.${index}.dependentName`);
-        return isDiscountApplied(employeeName);
-    };
-
-    const applyDiscount = (cost: number) => {
-        return cost * (1 - discount);
+        return CreateUpdateEmployeeService.isDiscountApplied(employeeName);
     };
 
     const getEmployeeBenefitCost = () => {
         let cost = employeeBenefitCost;
         if (isEmployeeBenefitDiscountApplied()) {
-            cost = applyDiscount(cost);
+            cost = CreateUpdateEmployeeService.applyDiscount(cost, discount);
         }
         return cost;
     }
 
     const getEmployeeBenefitCostString = () => {
         const cost = getEmployeeBenefitCost();
-        return `($${numberWithCommas((cost).toFixed(2))})`;
+        return `($${CommonService.toMoney(cost)})`;
     }
     
     const getDependentBenefitCost = (index: number) => {
         let cost = dependentBenefitCost;
         if (isDependentBenefitDiscountApplied(index)) {
-            cost = applyDiscount(cost);
+            cost = CreateUpdateEmployeeService.applyDiscount(cost, discount);
         }
         return cost;
     }
 
     const getDependentBenefitCostString = (index: number) => {
         const cost = getDependentBenefitCost(index);
-        return `($${numberWithCommas((cost).toFixed(2))})`;
+        return `($${CommonService.toMoney(cost)})`;
     }
 
     const getTotal = () => {
@@ -232,19 +220,19 @@ const CreateEmployee = () => {
     
     const getTotalString = () => {
       const total = getTotal();
-      return `$${numberWithCommas(total.toFixed(2))}`;
+      return `$${CommonService.toMoney(total)}`;
     };
 
     const employeeNameChange = () => {
         setEmployeeBenefitCostString(getEmployeeBenefitCostString());
-        setEmployeeBenefitDiscountActive(isDiscountApplied(getValues("employeeName")));
+        setEmployeeBenefitDiscountActive(CreateUpdateEmployeeService.isDiscountApplied(getValues("employeeName")));
         setCalcTotalString(getTotalString());
     };
 
     const dependentNameChange = (index: number) => {
         const dependentBenefit = dependentBenefits[index];
         dependentBenefit.costString = getDependentBenefitCostString(index);
-        dependentBenefit.discountActive = isDiscountApplied(getValues(`dependents.${index}.dependentName`));
+        dependentBenefit.discountActive = CreateUpdateEmployeeService.isDiscountApplied(getValues(`dependents.${index}.dependentName`));
         setDependentBenefits([...dependentBenefits]);
         setCalcTotalString(getTotalString());
     };
@@ -299,8 +287,8 @@ const CreateEmployee = () => {
                                 <div className="card-body">
                                     <p>Employee salary is <strong>${salaryPerPaycheck.toFixed(2)}</strong> per paycheck
                                         for <strong>{numberOfPaychecksPerYear}</strong> paychecks per year.</p>
-                                    <p>Employee benefits cost <strong>${employeeBenefitCost}</strong>/year.</p>
-                                    <p>Dependent benefits cost <strong>${dependentBenefitCost}</strong>/year per dependent.</p>
+                                    <p>Employee benefits cost <strong>${employeeBenefitCost.toFixed(2)}</strong>/year.</p>
+                                    <p>Dependent benefits cost <strong>${dependentBenefitCost.toFixed(2)}</strong>/year per dependent.</p>
                                     <p>Employee and dependent benefits receive a <strong>{discount * 100}%</strong> discount if their name
                                         starts with 'A'.</p>
                                     <table className="table">
