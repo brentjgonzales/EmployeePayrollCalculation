@@ -3,7 +3,6 @@ import {useForm, useFieldArray} from "react-hook-form";
 import {yupResolver} from '@hookform/resolvers/yup';
 import * as Yup from 'yup';
 import {v4 as uuidv4} from 'uuid';
-import axios from "axios";
 import {Config, Shape} from "../utils";
 import {useHistory, useParams} from "react-router";
 import ToastMaker from 'toastmaker';
@@ -74,10 +73,9 @@ const CreateEmployee = () => {
     const [dependentBenefitCost, setDependentBenefitCost] = useState(0);
     const [discount, setDiscount] = useState(0);
 
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        setIsLoading(true);
         
         AxiosService.get<Config>("/api/configuration", 
             data => {
@@ -157,54 +155,19 @@ const CreateEmployee = () => {
         };
         
         if (employeeIdParam) {
-            axios
-                .put("/api/employee/" + employeeIdParam, serverEmployee, {
-                    headers: {
-                        Accept: "application/json",
-                        "Content-Type": "application/json;charset=UTF-8",
-                    },
-                })
-                .then((data: any) => {
-                    if (!mountedRef.current) {
-                        return;
-                    }
+            AxiosService.put("/api/employee/" + employeeIdParam, serverEmployee,
+                data => {
                     ToastMaker("Successfully updated employee.");
                     history.push("/manage-employees");
-                    console.log(data);
-                })
-                .catch((data: any) => {
-                    if (!mountedRef.current) {
-                        return;
-                    }
-                    ToastMaker("An error occurred when updating the employee.");
-                    console.log(data);
-                });
+                }, "An error occurred when updating the employee.", mountedRef);
         }
         else {
-            axios
-                .post("/api/employee", serverEmployee, {
-                    headers: {
-                        Accept: "application/json",
-                        "Content-Type": "application/json;charset=UTF-8",
-                    },
-                })
-                .then((data: any) => {
-                    if (!mountedRef.current) {
-                        return;
-                    }
+            AxiosService.post("/api/employee", serverEmployee,
+                data => {
                     ToastMaker("Successfully created employee.");
                     history.push("/manage-employees");
-                    console.log(data);
-                })
-                .catch((data: any) => {
-                    if (!mountedRef.current) {
-                        return;
-                    }
-                    ToastMaker("An error occurred when creating the employee.");
-                    console.log(data);
-                });
+                }, "An error occurred when creating the employee.", mountedRef);
         }
-       
     }
 
     // https://stackoverflow.com/a/2901298/5573838

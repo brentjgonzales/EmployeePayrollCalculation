@@ -39,7 +39,7 @@ function post<T>(url: string,
                  errorMessage: string,
                  mountedRef: MutableRefObject<boolean>) {
     axios
-        .post<T>("/api/configuration", payload, config)
+        .post<T>(url, payload, config)
         .then(response => {
             if (!mountedRef.current) {
                 return;
@@ -63,7 +63,7 @@ function put<T>(url: string,
                 errorMessage: string,
                 mountedRef: MutableRefObject<boolean>) {
     axios
-        .put<T>("/api/configuration", payload, config)
+        .put<T>(url, payload, config)
         .then(response => {
             if (!mountedRef.current) {
                 return;
@@ -86,7 +86,7 @@ function del<T>(url: string,
                 errorMessage: string,
                 mountedRef: MutableRefObject<boolean>) {
     axios
-        .delete<T>("/api/configuration", config)
+        .delete<T>(url, config)
         .then(response => {
             if (!mountedRef.current) {
                 return;
