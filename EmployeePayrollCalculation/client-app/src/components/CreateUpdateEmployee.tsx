@@ -1,5 +1,5 @@
 import {useEffect, useRef, useState} from 'react';
-import {useForm, useFieldArray} from "react-hook-form";
+import {useFieldArray, useForm} from "react-hook-form";
 import {yupResolver} from '@hookform/resolvers/yup';
 import * as Yup from 'yup';
 import {v4 as uuidv4} from 'uuid';
@@ -7,6 +7,7 @@ import {Config, Shape} from "../utils";
 import {useHistory, useParams} from "react-router";
 import ToastMaker from 'toastmaker';
 import AxiosService from "../services/AxiosService";
+import YupService, {YupValidation} from "../services/YupService";
 
 interface Employee {
     employeeName: string,
@@ -33,18 +34,20 @@ const CreateEmployee = () => {
     const mountedRef = useRef(true);
     
     const history = useHistory();
-    const { employeeIdParam } = useParams<{employeeIdParam?: string | undefined}>();
-    
+    const { employeeIdParam } = useParams<{ employeeIdParam?: string | undefined }>();
+
     // form validation rules 
     const validationSchema = Yup.object<Shape<Employee>>().shape({
-        employeeName: Yup.string()
-            .required('Employee Name is required.')
-            .max(50, "Employee Name must be 50 characters or less."),
+        employeeName: YupService.validation("string", "Employee Name",
+            YupValidation.Required,
+            [YupValidation.Max, 50]
+        ),
         dependents: Yup.array().of(
             Yup.object().shape({
-                dependentName: Yup.string()
-                    .required('Dependent Name is required.')
-                    .max(50, "Dependent Name must be 50 characters or less.")
+                dependentName: YupService.validation("string", "Dependent Name",
+                    YupValidation.Required,
+                    [YupValidation.Max, 50]
+                )
             })
         )
     });

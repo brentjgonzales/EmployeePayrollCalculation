@@ -1,42 +1,52 @@
 import {useEffect, useRef, useState} from 'react';
-import {useForm, useFieldArray} from "react-hook-form";
+import {useForm} from "react-hook-form";
 import {yupResolver} from '@hookform/resolvers/yup';
 import * as Yup from 'yup';
-import {v4 as uuidv4} from 'uuid';
-import axios from "axios";
-import {
-    Link
-} from "react-router-dom";
 import ToastMaker from "toastmaker";
-import {useHistory} from "react-router";
 import {Config, Shape} from "../utils";
 import AxiosService from "../services/AxiosService";
+import YupService, {YupValidation} from "../services/YupService";
 
 const Configuration = () => {
     const mountedRef = useRef(true);
     
     const validationSchema = Yup.object<Shape<Config>>().shape({
-        salaryPerPaycheck: Yup.number()
-            .typeError('Salary Per Paycheck must be a number.')
-            .required("Salary Per Paycheck is required.")
-            .min(0, "Salary Per Paycheck must be at least 0."),
-        numberOfPaychecksPerYear: Yup.number()
-            .typeError('Number of Paychecks Per Year must be a number.')
-            .required("Number of Paychecks Per Year is required.")
-            .min(0, "Number of Paychecks Per Year must be at least 0."),
-        employeeBenefitCost: Yup.number()
-            .typeError('Employee Benefit Cost must be a number.')
-            .required("Employee Benefit Cost is required.")
-            .min(0, "Employee Benefit Cost must be at least 0."),
-        dependentBenefitCost: Yup.number()
-            .typeError('Dependent Benefit Cost must be a number.')
-            .required("Dependent Benefit Cost is required.")
-            .min(0, "Dependent Benefit Cost must be at least 0."),
-        discount: Yup.number()
-            .typeError('Discount must be a number.')
-            .required("Discount is required.")
-            .min(0, "Discount must be at least 0.")
-            .max(1, "Discount must be at most 1.")
+        salaryPerPaycheck: YupService.validation(
+            "number",
+            "Salary Per Paycheck",
+            YupValidation.TypeError,
+            YupValidation.Required,
+            [YupValidation.Min, 0]
+        ),
+        numberOfPaychecksPerYear: YupService.validation(
+            "number",
+            "Number of Paychecks Per Year",
+            YupValidation.TypeError,
+            YupValidation.Required,
+            [YupValidation.Min, 0]
+        ),
+        employeeBenefitCost: YupService.validation(
+            "number",
+            "Employee Benefit Cost",
+            YupValidation.TypeError,
+            YupValidation.Required,
+            [YupValidation.Min, 0]
+        ),
+        dependentBenefitCost: YupService.validation(
+            "number",
+            "Dependent Benefit Cost",
+            YupValidation.TypeError,
+            YupValidation.Required,
+            [YupValidation.Min, 0]
+        ),
+        discount: YupService.validation(
+            "number",
+            "Discount",
+            YupValidation.TypeError,
+            YupValidation.Required,
+            [YupValidation.Min, 0],
+            [YupValidation.Max, 1],
+        )
     });
     const formOptions = {resolver: yupResolver(validationSchema)};
 
@@ -46,12 +56,15 @@ const Configuration = () => {
     });
     const {errors} = formState;
 
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
     
     useEffect(() => {
         
         AxiosService.get<Config>("/api/configuration", 
             data => {
+            
+                setIsLoading(false);    
+            
                 setValue("salaryPerPaycheck", data.salaryPerPaycheck);
                 setValue("numberOfPaychecksPerYear", data.numberOfPaychecksPerYear);
                 setValue("employeeBenefitCost", data.employeeBenefitCost);
