@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {useForm, useFieldArray} from "react-hook-form";
 import {yupResolver} from '@hookform/resolvers/yup';
 import * as Yup from 'yup';
@@ -17,6 +17,9 @@ interface Employee {
 
 const ManageEmployees = () => {
 
+    // https://stackoverflow.com/a/60693711/5573838
+    const mountedRef = useRef(true);
+
     const [isLoading, setIsLoading] = useState(true);
     const [employees, setEmployees] = useState<Employee[]>([]);
     
@@ -29,13 +32,23 @@ const ManageEmployees = () => {
                 },
             })
             .then(response => {
+                if (!mountedRef.current) {
+                    return;
+                }
                 setEmployees(response.data);
                 setIsLoading(false);
             })
             .catch((data: any) => {
+                if (!mountedRef.current) {
+                    return;
+                }
                 alert("An error occured when retrieving the list of employees to manage.");
                 console.error(data);
             });
+
+        return () => {
+            mountedRef.current = false;
+        };
     }, []);
     
     const deleteEmployee = (employeeId: number) => {
@@ -47,10 +60,16 @@ const ManageEmployees = () => {
                 },
             })
             .then(() => {
+                if (!mountedRef.current) {
+                    return;
+                } 
                 ToastMaker("Successfully deleted employee.");
                 setEmployees(employees.filter(employee => employee.employeeId !== employeeId));
             })
             .catch((data: any) => {
+                if (!mountedRef.current) {
+                    return;
+                }
                 ToastMaker("An error occurred when deleting the employee.");
                 console.log(data);
             });

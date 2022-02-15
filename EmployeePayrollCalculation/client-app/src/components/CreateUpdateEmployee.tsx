@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {useForm, useFieldArray} from "react-hook-form";
 import {yupResolver} from '@hookform/resolvers/yup';
 import * as Yup from 'yup';
@@ -23,18 +23,15 @@ interface ServerEmployee {
     dependentNames: string[]
 }
 
-interface Calculation {
-    employeeBenefit: Benefit,
-    dependentBenefits: Benefit[],
-    total: string
-}
-
 interface Benefit {
     costString: string,
     discountActive: boolean
 }
 
 const CreateEmployee = () => {
+    // https://stackoverflow.com/a/60693711/5573838
+    const mountedRef = useRef(true);
+    
     const history = useHistory();
     const { employeeIdParam } = useParams<{employeeIdParam?: string | undefined}>();
     
@@ -85,6 +82,9 @@ const CreateEmployee = () => {
                     },
                 })
                 .then(response => {
+                    if (!mountedRef.current) {
+                        return;
+                    }
                     setValue("employeeName", response.data.employeeName);
                     if (response.data.dependentNames) {
                         setValue("dependents", response.data.dependentNames.map((dependentName) => ({id: uuidv4(), dependentName: dependentName})));
@@ -96,10 +96,17 @@ const CreateEmployee = () => {
                     setIsLoading(false);
                 })
                 .catch((data: any) => {
+                    if (!mountedRef.current) {
+                        return;
+                    }
                     ToastMaker("An error occured when retrieving the data for the employee.");
                     console.error(data);
                 });
         }
+
+        return () => {
+            mountedRef.current = false;
+        };
     }, []);
 
     const salaryPerPaycheck = 2000.00;
@@ -149,11 +156,17 @@ const CreateEmployee = () => {
                     },
                 })
                 .then((data: any) => {
+                    if (!mountedRef.current) {
+                        return;
+                    }
                     ToastMaker("Successfully updated employee.");
                     history.push("/manage-employees");
                     console.log(data);
                 })
                 .catch((data: any) => {
+                    if (!mountedRef.current) {
+                        return;
+                    }
                     ToastMaker("An error occurred when updating the employee.");
                     console.log(data);
                 });
@@ -167,11 +180,17 @@ const CreateEmployee = () => {
                     },
                 })
                 .then((data: any) => {
+                    if (!mountedRef.current) {
+                        return;
+                    }
                     ToastMaker("Successfully created employee.");
                     history.push("/manage-employees");
                     console.log(data);
                 })
                 .catch((data: any) => {
+                    if (!mountedRef.current) {
+                        return;
+                    }
                     ToastMaker("An error occurred when creating the employee.");
                     console.log(data);
                 });

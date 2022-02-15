@@ -44,6 +44,7 @@ const NavMenu = () => {
                 <Collapse navbar isOpen={!state.collapsed}>
                     <Nav navbar>
                         <NavItem>
+                            <NavLink tag={Link} className="text-dark" to="/configuration">Configuration</NavLink>
                             <NavLink tag={Link} className="text-dark" to="/manage-employees">Manage Employees</NavLink>
                             <NavLink tag={Link} className="text-dark" to="/create-update-employee">Create Employee</NavLink>
                         </NavItem>
