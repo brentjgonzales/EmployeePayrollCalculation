@@ -37,7 +37,7 @@ const CreateEmployee = () => {
     const history = useHistory();
     const { employeeIdParam } = useParams<{ employeeIdParam?: string | undefined }>();
 
-    // form validation rules 
+    // Form Validation
     const validationSchema = Yup.object<Shape<Employee>>().shape({
         employeeName: YupService.validation("string", "Employee Name",
             YupValidation.Required,
@@ -54,8 +54,8 @@ const CreateEmployee = () => {
     });
     const formOptions = {resolver: yupResolver(validationSchema)};
 
-    // functions to build form returned by useForm() and useFieldArray() hooks
-    const {register, control, handleSubmit, reset, formState, watch, getValues, setValue} = useForm({
+    // Custom Hooks
+    const {register, control, handleSubmit, formState, getValues, setValue} = useForm({
         ...formOptions,
         mode: "onBlur"
     });
@@ -66,11 +66,15 @@ const CreateEmployee = () => {
         fields: dependents
     } = useFieldArray({name: 'dependents', control});
 
+    // State management for result of calculation
+    const [employeeSalaryString, setEmployeeSalaryString] = useState("");
     const [employeeBenefitCostString, setEmployeeBenefitCostString] = useState("");
     const [employeeBenefitDiscountActive, setEmployeeBenefitDiscountActive] = useState(false);
     const [dependentBenefits, setDependentBenefits] = useState<Benefit[]>([]);
     const [calcTotalString, setCalcTotalString] = useState("");
 
+    // State management for variables needed for calculation
+    const [employeeSalary, setEmployeeSalary] = useState(0);
     const [salaryPerPaycheck, setSalaryPerPaycheck] = useState(0);
     const [numberOfPaychecksPerYear, setNumberOfPaychecksPerYear] = useState(0);
     const [employeeBenefitCost, setEmployeeBenefitCost] = useState(0);
@@ -80,10 +84,12 @@ const CreateEmployee = () => {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        
+
+        // Retrieve the variables needed for calculation
         AxiosService.get<Config>("/api/configuration", 
             data => {
 
+                setEmployeeSalary(data.salaryPerPaycheck * data.numberOfPaychecksPerYear)
                 setSalaryPerPaycheck(data.salaryPerPaycheck);
                 setNumberOfPaychecksPerYear(data.numberOfPaychecksPerYear);
                 setEmployeeBenefitCost(data.employeeBenefitCost);
@@ -92,6 +98,7 @@ const CreateEmployee = () => {
 
                 if (employeeIdParam) {
 
+                    // Retrieve the existing employee
                     AxiosService.get<ServerEmployee>("/api/employee/" + employeeIdParam,
                         data => {
                             setValue("employeeName", data.employeeName);
@@ -110,14 +117,16 @@ const CreateEmployee = () => {
                 
             }, "An error occured when retrieving the configuration.", mountedRef);
         
+        // Tell all async callbacks not to process because we have unmounted this component
         return () => {
             mountedRef.current = false;
         };
     }, []);
-
     
     useEffect(() => {
         
+        // Once loading is complete, trigger functionality to set all calculated values
+        setEmployeeSalaryString(CommonService.toMoney(employeeSalary));
         setEmployeeBenefitCostString(getEmployeeBenefitCostString());
         setEmployeeBenefitDiscountActive(CreateUpdateEmployeeService.isDiscountApplied(getValues("employeeName")));
         setDependentBenefits(dependents.map((dependent, index) =>
@@ -126,14 +135,14 @@ const CreateEmployee = () => {
         
     }, [isLoading]);
 
-    const employeeSalary = salaryPerPaycheck * numberOfPaychecksPerYear;
-    const employeeSalaryString = `$${CommonService.toMoney(employeeSalary)}`;
-
     const addDependent = () => {
+        // Update form
         appendDependentFieldArray({
             id: uuidv4(),
             dependentName: ''
         });
+        
+        // Re-run calculation
         const newIndex = dependentBenefits.length;
         setDependentBenefits([
             ...dependentBenefits,
@@ -146,19 +155,24 @@ const CreateEmployee = () => {
     };
 
     const removeDependent = (index: number) => {
+        // Update form
         removeDependentFieldArray(index);
+        
+        // Re-run calculation
         dependentBenefits.splice(index, 1);
         setDependentBenefits([...dependentBenefits]);
         setCalcTotalString(getTotalString());
     }
 
-    const createEmployee = (employee: Employee) => {
+    const apiCreateEmployee = (employee: Employee) => {
+        // Convert form to server model
         const serverEmployee: ServerEmployee = {
             employeeName: employee.employeeName,
             dependentNames: employee.dependents.map((dependent) => dependent.dependentName)
         };
         
         if (employeeIdParam) {
+            // Update employee
             AxiosService.put("/api/employee/" + employeeIdParam, serverEmployee,
                 data => {
                     ToastMaker("Successfully updated employee.");
@@ -166,6 +180,7 @@ const CreateEmployee = () => {
                 }, "An error occurred when updating the employee.", mountedRef);
         }
         else {
+            // Create employee
             AxiosService.post("/api/employee", serverEmployee,
                 data => {
                     ToastMaker("Successfully created employee.");
@@ -190,12 +205,12 @@ const CreateEmployee = () => {
             cost = CreateUpdateEmployeeService.applyDiscount(cost, discount);
         }
         return cost;
-    }
+    };
 
     const getEmployeeBenefitCostString = () => {
         const cost = getEmployeeBenefitCost();
-        return `($${CommonService.toMoney(cost)})`;
-    }
+        return CommonService.toMoney(cost);
+    };
     
     const getDependentBenefitCost = (index: number) => {
         let cost = dependentBenefitCost;
@@ -203,12 +218,12 @@ const CreateEmployee = () => {
             cost = CreateUpdateEmployeeService.applyDiscount(cost, discount);
         }
         return cost;
-    }
+    };
 
     const getDependentBenefitCostString = (index: number) => {
         const cost = getDependentBenefitCost(index);
-        return `($${CommonService.toMoney(cost)})`;
-    }
+        return CommonService.toMoney(cost);
+    };
 
     const getTotal = () => {
         let total = employeeSalary - getEmployeeBenefitCost(); 
@@ -220,16 +235,18 @@ const CreateEmployee = () => {
     
     const getTotalString = () => {
       const total = getTotal();
-      return `$${CommonService.toMoney(total)}`;
+      return CommonService.toMoney(total);
     };
 
     const employeeNameChange = () => {
+        // User changed the employee name, update the employee calculated values
         setEmployeeBenefitCostString(getEmployeeBenefitCostString());
         setEmployeeBenefitDiscountActive(CreateUpdateEmployeeService.isDiscountApplied(getValues("employeeName")));
         setCalcTotalString(getTotalString());
     };
 
     const dependentNameChange = (index: number) => {
+        // User changed the dependent name, update the dependent calculated values
         const dependentBenefit = dependentBenefits[index];
         dependentBenefit.costString = getDependentBenefitCostString(index);
         dependentBenefit.discountActive = CreateUpdateEmployeeService.isDiscountApplied(getValues(`dependents.${index}.dependentName`));
@@ -243,7 +260,7 @@ const CreateEmployee = () => {
 
             {isLoading ? <em>Loading...</em> :
 
-                <form onSubmit={handleSubmit((data) => createEmployee(data as Employee))}>
+                <form onSubmit={handleSubmit((data) => apiCreateEmployee(data as Employee))}>
                     <div className="row">
                         <div className="col-xl-6">
                             <div className="card mb-4">
@@ -295,7 +312,7 @@ const CreateEmployee = () => {
                                         <tbody>
                                         <tr>
                                             <td>Employee Salary</td>
-                                            <td className="green">{employeeSalaryString}</td>
+                                            <td className="green">${employeeSalaryString}</td>
                                         </tr>
                                         <tr>
                                             <td>
@@ -303,7 +320,7 @@ const CreateEmployee = () => {
                                                 {employeeBenefitDiscountActive &&
                                                     <div className="green small">Discount applied.</div>}
                                             </td>
-                                            <td className="darkred">{employeeBenefitCostString}</td>
+                                            <td className="darkred">(${employeeBenefitCostString})</td>
                                         </tr>
                                         {dependentBenefits.map((item, i) => (
                                             <tr key={dependents[i].id}>
@@ -314,12 +331,12 @@ const CreateEmployee = () => {
                                                     {item.discountActive &&
                                                         <div className="green small">Discount applied.</div>}
                                                 </td>
-                                                <td className="darkred">{item.costString}</td>
+                                                <td className="darkred">(${item.costString})</td>
                                             </tr>
                                         ))}
                                         <tr>
                                             <th>Total</th>
-                                            <th>{calcTotalString}</th>
+                                            <th>${calcTotalString}</th>
                                         </tr>
                                         </tbody>
                                     </table>
