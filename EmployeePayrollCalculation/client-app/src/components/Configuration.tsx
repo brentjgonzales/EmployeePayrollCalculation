@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {useForm, useFieldArray} from "react-hook-form";
 import {yupResolver} from '@hookform/resolvers/yup';
 import * as Yup from 'yup';
@@ -9,79 +9,138 @@ import {
 } from "react-router-dom";
 import ToastMaker from "toastmaker";
 import {useHistory} from "react-router";
-
-interface Employee {
-    employeeId: number,
-    employeeName: string
-}
+import {Config, Shape} from "../utils";
 
 const Configuration = () => {
-    //
-    // const [isLoading, setIsLoading] = useState(true);
-    // const [employees, setEmployees] = useState<Employee[]>([]);
-    //
-    // useEffect(() => {
-    //     axios
-    //         .get<Employee[]>("/api/employee/manage", {
-    //             headers: {
-    //                 Accept: "application/json",
-    //                 "Content-Type": "application/json;charset=UTF-8",
-    //             },
-    //         })
-    //         .then(response => {
-    //             setEmployees(response.data);
-    //             setIsLoading(false);
-    //         })
-    //         .catch((data: any) => {
-    //             alert("An error occured when retrieving the list of employees to manage.");
-    //             console.error(data);
-    //         });
-    // }, []);
-    //
-    // const deleteEmployee = (employeeId: number) => {
-    //     axios
-    //         .delete("/api/employee/" + employeeId, {
-    //             headers: {
-    //                 Accept: "application/json",
-    //                 "Content-Type": "application/json;charset=UTF-8",
-    //             },
-    //         })
-    //         .then(() => {
-    //             ToastMaker("Successfully deleted employee.");
-    //             setEmployees(employees.filter(employee => employee.employeeId !== employeeId));
-    //         })
-    //         .catch((data: any) => {
-    //             ToastMaker("An error occurred when deleting the employee.");
-    //             console.log(data);
-    //         });
-    // };
+    const mountedRef = useRef(true);
+    
+    const validationSchema = Yup.object<Shape<Config>>().shape({
+        salaryPerPaycheck: Yup.number()
+            .typeError('Salary Per Paycheck must be a number.')
+            .required("Salary Per Paycheck is required.")
+            .min(0, "Salary Per Paycheck must be at least 0."),
+        numberOfPaychecksPerYear: Yup.number()
+            .typeError('Number of Paychecks Per Year must be a number.')
+            .required("Number of Paychecks Per Year is required.")
+            .min(0, "Number of Paychecks Per Year must be at least 0."),
+        employeeBenefitCost: Yup.number()
+            .typeError('Employee Benefit Cost must be a number.')
+            .required("Employee Benefit Cost is required.")
+            .min(0, "Employee Benefit Cost must be at least 0."),
+        dependentBenefitCost: Yup.number()
+            .typeError('Dependent Benefit Cost must be a number.')
+            .required("Dependent Benefit Cost is required.")
+            .min(0, "Dependent Benefit Cost must be at least 0."),
+        discount: Yup.number()
+            .typeError('Discount must be a number.')
+            .required("Discount is required.")
+            .min(0, "Discount must be at least 0.")
+            .max(1, "Discount must be at most 1.")
+    });
+    const formOptions = {resolver: yupResolver(validationSchema)};
+
+    const {register, control, handleSubmit, reset, formState, watch, getValues, setValue} = useForm({
+        ...formOptions,
+        mode: "onBlur"
+    });
+    const {errors} = formState;
+
+    const [isLoading, setIsLoading] = useState(false);
+    
+    useEffect(() => {
+
+        axios
+            .get<Config>("/api/configuration", {
+                headers: {
+                    Accept: "application/json",
+                    "Content-Type": "application/json;charset=UTF-8",
+                },
+            })
+            .then(response => {
+                const {data} = response;
+                setValue("salaryPerPaycheck", data.salaryPerPaycheck);
+                setValue("numberOfPaychecksPerYear", data.numberOfPaychecksPerYear);
+                setValue("employeeBenefitCost", data.employeeBenefitCost);
+                setValue("dependentBenefitCost", data.dependentBenefitCost);
+                setValue("discount", data.discount);
+            })
+            .catch((data: any) => {
+                ToastMaker("An error occured when retrieving the configuration.");
+                console.error(data);
+            });
+        
+    }, []);
+
+    const updateConfiguration = (configuration: Config) => {
+        
+        axios
+            .put("/api/configuration/", configuration, {
+                headers: {
+                    Accept: "application/json",
+                    "Content-Type": "application/json;charset=UTF-8",
+                },
+            })
+            .then((data: any) => {
+                if (!mountedRef.current) {
+                    return;
+                }
+                ToastMaker("Successfully updated configuration.");
+                console.log(data);
+            })
+            .catch((data: any) => {
+                if (!mountedRef.current) {
+                    return;
+                }
+                ToastMaker("An error occurred when updating the configuration.");
+                console.log(data);
+            });
+    };
 
     return (
         <div className="container">
             <h2 className="mb-4">Configuration</h2>
-            {/*{isLoading && <span>Loading...</span>}*/}
-            {/*{!isLoading && employees.length === 0*/}
-            {/*    ? <em>No employees found.</em>*/}
-            {/*    :*/}
-            {/*    <>*/}
-            {/*        {employees.map((employee, index) => (*/}
+            {isLoading ? <em>Loading...</em> :
+
+                <form onSubmit={handleSubmit((data) => updateConfiguration(data as Config))}>
+                    <div className="mb-3">
+                        <label htmlFor='salaryPerPaycheck'>Salary Per Paycheck</label>
+                        <div className="input-group">
+                            <span className="input-group-text">$</span>
+                            <input {...register('salaryPerPaycheck')} className={`form-control ${errors.salaryPerPaycheck ? 'is-invalid' : ''}`}/>
+                        </div>
+                        <div className="text-danger small">{errors.salaryPerPaycheck?.message}</div>
+                    </div>
+                    <div className="mb-3">
+                        <label htmlFor='numberOfPaychecksPerYear'>Number of Paychecks Per Year</label>
+                        <input {...register('numberOfPaychecksPerYear')} className={`form-control ${errors.numberOfPaychecksPerYear ? 'is-invalid' : ''}`}/>
+                        <div className="text-danger small">{errors.numberOfPaychecksPerYear?.message}</div>
+                    </div>
+                    <div className="mb-3">
+                        <label htmlFor='employeeBenefitCost'>Employee Benefit Cost</label>
+                        <div className="input-group">
+                            <span className="input-group-text">$</span>
+                            <input {...register('employeeBenefitCost')} className={`form-control ${errors.employeeBenefitCost ? 'is-invalid' : ''}`}/>
+                        </div>
+                        <div className="text-danger small">{errors.employeeBenefitCost?.message}</div>
+                    </div>
+                    <div className="mb-3">
+                        <label htmlFor='dependentBenefitCost'>Dependent Benefit Cost</label>
+                        <div className="input-group">
+                            <span className="input-group-text">$</span>
+                            <input {...register('dependentBenefitCost')} className={`form-control ${errors.dependentBenefitCost ? 'is-invalid' : ''}`}/>
+                        </div>
+                        <div className="text-danger small">{errors.dependentBenefitCost?.message}</div>
+                    </div>
+                    <div className="mb-3">
+                        <label htmlFor='discount'>Discount</label>
+                        <input {...register('discount')} className={`form-control ${errors.discount ? 'is-invalid' : ''}`}/>
+                        <div className="text-danger small">{errors.discount?.message}</div>
+                    </div>
+                    <button type="submit" className="btn btn-success">Update Configuration</button>
+                </form>
+                
+            }
             
-            {/*            <div key={employee.employeeId} className="card">*/}
-            {/*                <div className="card-body">*/}
-            {/*                    <div className="d-flex justify-content-between">*/}
-            {/*                        <div className="vertically-center">*/}
-            {/*                            <Link to={"/create-update-employee/" + employee.employeeId}>{employee.employeeName}</Link>*/}
-            {/*                        </div>*/}
-            {/*                        <div>*/}
-            {/*                            <button type="button" className="btn btn-outline-danger" onClick={() => {deleteEmployee(employee.employeeId)}}>Delete</button>*/}
-            {/*                        </div>*/}
-            {/*                    </div>*/}
-            {/*                </div>*/}
-            {/*            </div>*/}
-            
-            {/*        ))}*/}
-            {/*    </>*/}
-            {/*}*/}
         </div>
     )
 }

@@ -4,7 +4,7 @@ import {yupResolver} from '@hookform/resolvers/yup';
 import * as Yup from 'yup';
 import {v4 as uuidv4} from 'uuid';
 import axios from "axios";
-import {Shape} from "../utils";
+import {Config, Shape} from "../utils";
 import {useHistory, useParams} from "react-router";
 import ToastMaker from 'toastmaker';
 
@@ -66,11 +66,38 @@ const CreateEmployee = () => {
     const [employeeBenefitDiscountActive, setEmployeeBenefitDiscountActive] = useState(false);
     const [dependentBenefits, setDependentBenefits] = useState<Benefit[]>([]);
     const [calcTotalString, setCalcTotalString] = useState("");
+
+    const [salaryPerPaycheck, setSalaryPerPaycheck] = useState(0);
+    const [numberOfPaychecksPerYear, setNumberOfPaychecksPerYear] = useState(0);
+    const [employeeBenefitCost, setEmployeeBenefitCost] = useState(0);
+    const [dependentBenefitCost, setDependentBenefitCost] = useState(0);
+    const [discount, setDiscount] = useState(0);
+
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         setEmployeeBenefitCostString(getEmployeeBenefitCostString());
         setCalcTotalString(getTotalString());
+
+        axios
+            .get<Config>("/api/configuration", {
+                headers: {
+                    Accept: "application/json",
+                    "Content-Type": "application/json;charset=UTF-8",
+                },
+            })
+            .then(response => {
+                const {data} = response;
+                setSalaryPerPaycheck(data.salaryPerPaycheck);
+                setNumberOfPaychecksPerYear(data.numberOfPaychecksPerYear);
+                setEmployeeBenefitCost(data.employeeBenefitCost);
+                setDependentBenefitCost(data.dependentBenefitCost);
+                setDiscount(data.discount);
+            })
+            .catch((data: any) => {
+                ToastMaker("An error occured when retrieving the configuration.");
+                console.error(data);
+            });
         
         if (employeeIdParam) {
             setIsLoading(true);
@@ -108,12 +135,6 @@ const CreateEmployee = () => {
             mountedRef.current = false;
         };
     }, []);
-
-    const salaryPerPaycheck = 2000.00;
-    const numberOfPaychecksPerYear = 26;
-    const employeeBenefitCost = 1000.00;
-    const dependentBenefitCost = 500.00;
-    const discount = 0.10;
 
     const employeeSalary = salaryPerPaycheck * numberOfPaychecksPerYear;
     const employeeSalaryString = `$${numberWithCommas(employeeSalary.toFixed(2))}`;
@@ -323,10 +344,10 @@ const CreateEmployee = () => {
                                 <h5 className="card-header">Calculation</h5>
                                 <div className="card-body">
                                     <p>Employee salary is <strong>${salaryPerPaycheck.toFixed(2)}</strong> per paycheck
-                                        for <strong>26</strong> paychecks per year.</p>
+                                        for <strong>{numberOfPaychecksPerYear}</strong> paychecks per year.</p>
                                     <p>Employee benefits cost <strong>${employeeBenefitCost}</strong>/year.</p>
-                                    <p>Dependent benefits cost <strong>$500.00</strong>/year per dependent.</p>
-                                    <p>Employee and dependent benefits receive a <strong>10%</strong> discount if their name
+                                    <p>Dependent benefits cost <strong>${dependentBenefitCost}</strong>/year per dependent.</p>
+                                    <p>Employee and dependent benefits receive a <strong>{discount * 100}%</strong> discount if their name
                                         starts with 'A'.</p>
                                     <table className="table">
                                         <tbody>

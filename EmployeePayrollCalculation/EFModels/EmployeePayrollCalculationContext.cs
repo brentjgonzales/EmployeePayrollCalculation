@@ -12,11 +12,25 @@ namespace EmployeePayrollCalculation.EFModels
         {
         }
 
+        public virtual DbSet<Configuration> Configurations { get; set; } = null!;
         public virtual DbSet<Dependent> Dependents { get; set; } = null!;
         public virtual DbSet<Employee> Employees { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<Configuration>(entity =>
+            {
+                entity.ToTable("Configuration");
+
+                entity.Property(e => e.DependentBenefitCost).HasColumnType("decimal(19, 2)");
+
+                entity.Property(e => e.Discount).HasColumnType("decimal(5, 2)");
+
+                entity.Property(e => e.EmployeeBenefitCost).HasColumnType("decimal(19, 2)");
+
+                entity.Property(e => e.SalaryPerPaycheck).HasColumnType("decimal(19, 2)");
+            });
+
             modelBuilder.Entity<Dependent>(entity =>
             {
                 entity.ToTable("Dependent");
