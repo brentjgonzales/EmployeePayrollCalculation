@@ -9,6 +9,7 @@ import {
 } from "react-router-dom";
 import ToastMaker from "toastmaker";
 import {useHistory} from "react-router";
+import AxiosService from "../services/AxiosService";
 
 interface Employee {
     employeeId: number,
@@ -24,27 +25,12 @@ const ManageEmployees = () => {
     const [employees, setEmployees] = useState<Employee[]>([]);
     
     useEffect(() => {
-        axios
-            .get<Employee[]>("/api/employee/manage", {
-                headers: {
-                    Accept: "application/json",
-                    "Content-Type": "application/json;charset=UTF-8",
-                },
-            })
-            .then(response => {
-                if (!mountedRef.current) {
-                    return;
-                }
-                setEmployees(response.data);
+        AxiosService.get<Employee[]>("/api/employee/manage",
+            data => {
+                setEmployees(data);
                 setIsLoading(false);
-            })
-            .catch((data: any) => {
-                if (!mountedRef.current) {
-                    return;
-                }
-                alert("An error occured when retrieving the list of employees to manage.");
-                console.error(data);
-            });
+
+            }, "An error occured when retrieving the list of employees to manage.", mountedRef);
 
         return () => {
             mountedRef.current = false;
@@ -52,27 +38,11 @@ const ManageEmployees = () => {
     }, []);
     
     const deleteEmployee = (employeeId: number) => {
-        axios
-            .delete("/api/employee/" + employeeId, {
-                headers: {
-                    Accept: "application/json",
-                    "Content-Type": "application/json;charset=UTF-8",
-                },
-            })
-            .then(() => {
-                if (!mountedRef.current) {
-                    return;
-                } 
+        AxiosService.delete("/api/employee/" + employeeId, 
+            data => {
                 ToastMaker("Successfully deleted employee.");
                 setEmployees(employees.filter(employee => employee.employeeId !== employeeId));
-            })
-            .catch((data: any) => {
-                if (!mountedRef.current) {
-                    return;
-                }
-                ToastMaker("An error occurred when deleting the employee.");
-                console.log(data);
-            });
+            }, "An error occurred when deleting the employee.", mountedRef);
     };
 
     return (

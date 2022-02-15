@@ -10,6 +10,7 @@ import {
 import ToastMaker from "toastmaker";
 import {useHistory} from "react-router";
 import {Config, Shape} from "../utils";
+import AxiosService from "../services/AxiosService";
 
 const Configuration = () => {
     const mountedRef = useRef(true);
@@ -48,52 +49,25 @@ const Configuration = () => {
     const [isLoading, setIsLoading] = useState(false);
     
     useEffect(() => {
-
-        axios
-            .get<Config>("/api/configuration", {
-                headers: {
-                    Accept: "application/json",
-                    "Content-Type": "application/json;charset=UTF-8",
-                },
-            })
-            .then(response => {
-                const {data} = response;
+        
+        AxiosService.get<Config>("/api/configuration", 
+            data => {
                 setValue("salaryPerPaycheck", data.salaryPerPaycheck);
                 setValue("numberOfPaychecksPerYear", data.numberOfPaychecksPerYear);
                 setValue("employeeBenefitCost", data.employeeBenefitCost);
                 setValue("dependentBenefitCost", data.dependentBenefitCost);
                 setValue("discount", data.discount);
-            })
-            .catch((data: any) => {
-                ToastMaker("An error occured when retrieving the configuration.");
-                console.error(data);
-            });
+            }, "An error occurred when retrieving the configuration.", mountedRef);
         
     }, []);
 
     const updateConfiguration = (configuration: Config) => {
         
-        axios
-            .put("/api/configuration/", configuration, {
-                headers: {
-                    Accept: "application/json",
-                    "Content-Type": "application/json;charset=UTF-8",
-                },
-            })
-            .then((data: any) => {
-                if (!mountedRef.current) {
-                    return;
-                }
+        AxiosService.put("/api/configuration/", configuration, 
+            data => {
                 ToastMaker("Successfully updated configuration.");
-                console.log(data);
-            })
-            .catch((data: any) => {
-                if (!mountedRef.current) {
-                    return;
-                }
-                ToastMaker("An error occurred when updating the configuration.");
-                console.log(data);
-            });
+            }, "An error occurred when updating the configuration.", mountedRef);
+        
     };
 
     return (
