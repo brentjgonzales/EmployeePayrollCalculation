@@ -45,6 +45,7 @@
     "@types/reactstrap": "^8.7.2",
     "@types/uuid": "^8.3.4",
     "ajv": "^6.9.1",
+    "axios-mock-adapter": "^1.20.0",
     "cross-env": "^7.0.3",
     "eslint": "^7.25.0",
     "eslint-config-react-app": "^6.0.0",

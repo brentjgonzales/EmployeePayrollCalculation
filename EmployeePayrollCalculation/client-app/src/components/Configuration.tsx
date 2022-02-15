@@ -9,7 +9,8 @@ import YupService, {YupValidation} from "../services/YupService";
 
 const Configuration = () => {
     const mountedRef = useRef(true);
-    
+
+    // Form Validation
     const validationSchema = Yup.object<Shape<Config>>().shape({
         salaryPerPaycheck: YupService.validation(
             "number",
@@ -50,7 +51,8 @@ const Configuration = () => {
     });
     const formOptions = {resolver: yupResolver(validationSchema)};
 
-    const {register, control, handleSubmit, reset, formState, watch, getValues, setValue} = useForm({
+    // Custom Hooks
+    const {register, handleSubmit, formState, setValue} = useForm({
         ...formOptions,
         mode: "onBlur"
     });
@@ -60,6 +62,7 @@ const Configuration = () => {
     
     useEffect(() => {
         
+        // Retrieve the existing configuration
         AxiosService.get<Config>("/api/configuration", 
             data => {
             
@@ -71,6 +74,11 @@ const Configuration = () => {
                 setValue("dependentBenefitCost", data.dependentBenefitCost);
                 setValue("discount", data.discount);
             }, "An error occurred when retrieving the configuration.", mountedRef);
+
+        // Tell all async callbacks not to process because we have unmounted this component
+        return () => {
+            mountedRef.current = false;
+        };
         
     }, []);
 

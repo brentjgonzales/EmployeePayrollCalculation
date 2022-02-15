@@ -17,14 +17,13 @@ interface Employee {
 }
 
 const ManageEmployees = () => {
-
-    // https://stackoverflow.com/a/60693711/5573838
     const mountedRef = useRef(true);
 
     const [isLoading, setIsLoading] = useState(true);
     const [employees, setEmployees] = useState<Employee[]>([]);
     
     useEffect(() => {
+        // Retrieve employees to manage
         AxiosService.get<Employee[]>("/api/employee/manage",
             data => {
                 setEmployees(data);
@@ -32,6 +31,7 @@ const ManageEmployees = () => {
 
             }, "An error occured when retrieving the list of employees to manage.", mountedRef);
 
+        // Tell all async callbacks not to process because we have unmounted this component
         return () => {
             mountedRef.current = false;
         };

@@ -1,5 +1,4 @@
-﻿import axios, {AxiosResponse} from "axios";
-import {Config} from "../utils";
+﻿import axios from "axios";
 import ToastMaker from "toastmaker";
 import {MutableRefObject} from "react";
 

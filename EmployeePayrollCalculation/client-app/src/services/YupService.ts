@@ -1,7 +1,6 @@
 ﻿import * as Yup from 'yup';
 import {NumberSchema} from "yup";
 import {AnyObject} from "yup/lib/object";
-import {debug} from "util";
 
 export enum YupValidation {
     TypeError,
@@ -14,7 +13,7 @@ const YupService = {
     validation: (operation: "number" | "string", label: string, 
              ...yupValidation: (YupValidation | [YupValidation, any])[]): NumberSchema<number | undefined, AnyObject, number | undefined> => {
         
-        let chain = (Yup as any)[operation]();
+        let chain = (Yup as any)[operation](); 
         
         for (let p of yupValidation) {
             let val: YupValidation;
