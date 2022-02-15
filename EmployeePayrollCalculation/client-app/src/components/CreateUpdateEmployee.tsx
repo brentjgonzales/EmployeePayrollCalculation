@@ -7,6 +7,7 @@ import axios from "axios";
 import {Config, Shape} from "../utils";
 import {useHistory, useParams} from "react-router";
 import ToastMaker from 'toastmaker';
+import AxiosService from "../services/AxiosService";
 
 interface Employee {
     employeeName: string,
@@ -76,65 +77,52 @@ const CreateEmployee = () => {
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
-        setEmployeeBenefitCostString(getEmployeeBenefitCostString());
-        setCalcTotalString(getTotalString());
+        setIsLoading(true);
+        
+        AxiosService.get<Config>("/api/configuration", 
+            data => {
 
-        axios
-            .get<Config>("/api/configuration", {
-                headers: {
-                    Accept: "application/json",
-                    "Content-Type": "application/json;charset=UTF-8",
-                },
-            })
-            .then(response => {
-                const {data} = response;
                 setSalaryPerPaycheck(data.salaryPerPaycheck);
                 setNumberOfPaychecksPerYear(data.numberOfPaychecksPerYear);
                 setEmployeeBenefitCost(data.employeeBenefitCost);
                 setDependentBenefitCost(data.dependentBenefitCost);
                 setDiscount(data.discount);
-            })
-            .catch((data: any) => {
-                ToastMaker("An error occured when retrieving the configuration.");
-                console.error(data);
-            });
-        
-        if (employeeIdParam) {
-            setIsLoading(true);
-            axios
-                .get<ServerEmployee>("/api/employee/" + employeeIdParam, {
-                    headers: {
-                        Accept: "application/json",
-                        "Content-Type": "application/json;charset=UTF-8",
-                    },
-                })
-                .then(response => {
-                    if (!mountedRef.current) {
-                        return;
-                    }
-                    setValue("employeeName", response.data.employeeName);
-                    if (response.data.dependentNames) {
-                        setValue("dependents", response.data.dependentNames.map((dependentName) => ({id: uuidv4(), dependentName: dependentName})));
-                        setDependentBenefits(response.data.dependentNames.map((dependentName, index) => ({costString: getDependentBenefitCostString(index), discountActive: isDiscountApplied(getValues(`dependents.${index}.dependentName`))})));
-                    }
-                    setEmployeeBenefitCostString(getEmployeeBenefitCostString());
-                    setEmployeeBenefitDiscountActive(isDiscountApplied(getValues("employeeName")));
-                    setCalcTotalString(getTotalString());
-                    setIsLoading(false);
-                })
-                .catch((data: any) => {
-                    if (!mountedRef.current) {
-                        return;
-                    }
-                    ToastMaker("An error occured when retrieving the data for the employee.");
-                    console.error(data);
-                });
-        }
 
+                if (employeeIdParam) {
+
+                    AxiosService.get<ServerEmployee>("/api/employee/" + employeeIdParam,
+                        data => {
+                            setValue("employeeName", data.employeeName);
+                            if (data.dependentNames) {
+                                setValue("dependents", data.dependentNames.map((dependentName) =>
+                                    ({id: uuidv4(), dependentName: dependentName})));
+                            }
+                            
+                            setIsLoading(false);
+                        }, "An error occured when retrieving the data for the employee.", mountedRef);
+
+                }
+                else {
+                    setIsLoading(false);
+                }
+                
+            }, "An error occured when retrieving the configuration.", mountedRef);
+        
         return () => {
             mountedRef.current = false;
         };
     }, []);
+
+    
+    useEffect(() => {
+        
+        setEmployeeBenefitCostString(getEmployeeBenefitCostString());
+        setEmployeeBenefitDiscountActive(isDiscountApplied(getValues("employeeName")));
+        setDependentBenefits(dependents.map((dependent, index) =>
+            ({costString: getDependentBenefitCostString(index), discountActive: isDiscountApplied(getValues(`dependents.${index}.dependentName`))})));
+        setCalcTotalString(getTotalString());
+        
+    }, [isLoading]);
 
     const employeeSalary = salaryPerPaycheck * numberOfPaychecksPerYear;
     const employeeSalaryString = `$${numberWithCommas(employeeSalary.toFixed(2))}`;
